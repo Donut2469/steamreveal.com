@@ -1,165 +1,858 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Steam Profile Stats</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SteamReveal</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#071018;
+      --bg2:#0b1622;
+      --panel:#101822;
+      --panel2:#16202d;
+      --line:#223246;
+      --text:#e7f1fb;
+      --muted:#9db4c9;
+      --blue:#66c0f4;
+      --blue2:#1b5f85;
+      --green:#7cc76d;
+      --red:#ff6b6b;
+      --gold:#f5c451;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+    }
 
-<style>
-body{
-background:#0b0f14;
-color:white;
-font-family:Arial;
-text-align:center;
-padding:40px;
-}
+    *{box-sizing:border-box}
 
-h1{
-color:#66c0f4;
-}
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top, rgba(102,192,244,.12), transparent 25%),
+        linear-gradient(180deg, #050b12 0%, #071018 40%, #09131d 100%);
+      min-height:100vh;
+    }
 
-input{
-padding:10px;
-width:260px;
-border:none;
-border-radius:5px;
-}
+    .wrap{
+      width:min(1200px, 92%);
+      margin:0 auto;
+      padding:32px 0 60px;
+    }
 
-button{
-padding:10px 20px;
-background:#66c0f4;
-border:none;
-border-radius:5px;
-cursor:pointer;
-}
+    .hero{
+      text-align:center;
+      margin-bottom:28px;
+    }
 
-button:hover{
-background:#417a9b;
-}
+    .brand{
+      font-size:48px;
+      font-weight:800;
+      letter-spacing:.5px;
+      margin:10px 0 8px;
+      color:var(--blue);
+      text-shadow:0 0 18px rgba(102,192,244,.18);
+    }
 
-#profile{
-margin-top:30px;
-}
+    .sub{
+      color:var(--muted);
+      font-size:15px;
+      margin:0 0 22px;
+    }
 
-.card{
-background:#171a21;
-padding:20px;
-border-radius:10px;
-display:inline-block;
-width:350px;
-}
+    .searchbar{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
 
-img{
-border-radius:10px;
-}
+    .searchbar input{
+      width:min(640px, 92vw);
+      padding:16px 18px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      outline:none;
+      font-size:16px;
+      box-shadow:var(--shadow);
+    }
 
-.stat{
-margin-top:10px;
-}
+    .searchbar input::placeholder{
+      color:#a2b6c8;
+    }
 
-.error{
-color:red;
-margin-top:20px;
-}
-</style>
+    .searchbar button{
+      padding:16px 24px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(180deg, #66c0f4 0%, #3a8fbe 100%);
+      color:#071018;
+      font-weight:700;
+      cursor:pointer;
+      transition:.2s ease;
+      box-shadow:0 8px 24px rgba(102,192,244,.25);
+    }
+
+    .searchbar button:hover{
+      transform:translateY(-1px);
+      filter:brightness(1.06);
+    }
+
+    .tip{
+      text-align:center;
+      color:var(--muted);
+      margin-top:14px;
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .status{
+      margin:26px auto 0;
+      text-align:center;
+      color:var(--muted);
+      min-height:24px;
+      font-size:15px;
+    }
+
+    .error{
+      color:var(--red);
+      font-weight:700;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:20px;
+      margin-top:28px;
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(20,29,40,.92), rgba(12,20,30,.96));
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .panel-head{
+      padding:16px 18px;
+      border-bottom:1px solid rgba(255,255,255,.05);
+      background:linear-gradient(90deg, rgba(102,192,244,.12), transparent);
+    }
+
+    .panel-head h2{
+      margin:0;
+      font-size:18px;
+      color:#dff2ff;
+    }
+
+    .panel-body{
+      padding:18px;
+    }
+
+    .profile-card{
+      display:flex;
+      gap:18px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
+    .avatar{
+      width:152px;
+      height:152px;
+      border-radius:18px;
+      object-fit:cover;
+      border:2px solid rgba(102,192,244,.35);
+      box-shadow:0 0 0 4px rgba(102,192,244,.08);
+      background:#000;
+    }
+
+    .profile-meta{
+      flex:1;
+      min-width:260px;
+    }
+
+    .persona{
+      font-size:34px;
+      font-weight:800;
+      margin:0 0 10px;
+      line-height:1.05;
+      word-break:break-word;
+    }
+
+    .profile-link{
+      color:var(--blue);
+      text-decoration:none;
+      font-weight:700;
+    }
+
+    .profile-link:hover{
+      text-decoration:underline;
+    }
+
+    .stat-row{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:12px;
+      margin-top:18px;
+    }
+
+    .stat-box{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .stat-label{
+      color:var(--muted);
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:6px;
+    }
+
+    .stat-value{
+      font-size:20px;
+      font-weight:800;
+      color:#fff;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:14px;
+      margin-top:10px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      display:inline-block;
+    }
+
+    .dot.public{background:var(--green)}
+    .dot.private{background:var(--red)}
+
+    .games-list{
+      display:grid;
+      gap:14px;
+    }
+
+    .game-item{
+      display:grid;
+      grid-template-columns:120px 1fr auto;
+      gap:14px;
+      align-items:center;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:16px;
+      overflow:hidden;
+      transition:.18s ease;
+    }
+
+    .game-item:hover{
+      transform:translateY(-1px);
+      border-color:rgba(102,192,244,.26);
+    }
+
+    .game-item img{
+      width:120px;
+      height:56px;
+      object-fit:cover;
+      display:block;
+      background:#000;
+    }
+
+    .game-main{
+      padding:10px 0;
+      min-width:0;
+    }
+
+    .game-rank{
+      color:var(--gold);
+      font-weight:800;
+      font-size:13px;
+      margin-bottom:4px;
+    }
+
+    .game-name{
+      font-size:17px;
+      font-weight:800;
+      color:#fff;
+      margin-bottom:4px;
+      word-break:break-word;
+    }
+
+    .game-sub{
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .hours{
+      padding-right:16px;
+      font-size:20px;
+      font-weight:800;
+      color:var(--blue);
+      white-space:nowrap;
+    }
+
+    .ach-list{
+      display:grid;
+      gap:12px;
+    }
+
+    .ach-item{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .ach-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      margin-bottom:8px;
+    }
+
+    .ach-name{
+      font-weight:800;
+      color:#fff;
+      word-break:break-word;
+    }
+
+    .ach-rate{
+      color:var(--gold);
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .ach-game{
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .chart-wrap{
+      padding:12px;
+      background:rgba(255,255,255,.02);
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.04);
+    }
+
+    .muted{
+      color:var(--muted);
+    }
+
+    .footer-note{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .hidden{
+      display:none;
+    }
+
+    @media (max-width: 980px){
+      .grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 640px){
+      .brand{font-size:36px}
+      .persona{font-size:26px}
+      .game-item{
+        grid-template-columns:1fr;
+      }
+      .game-item img{
+        width:100%;
+        height:80px;
+      }
+      .hours{
+        padding:0 14px 14px;
+      }
+      .stat-row{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="brand">SteamReveal</div>
+      <p class="sub">Profile analyzer • Top games • Charts • Rare achievements</p>
 
-<h1>Steam Profile Stats</h1>
+      <div class="searchbar">
+        <input
+          id="steamInput"
+          type="text"
+          placeholder="SteamID64, vanity name, vagy Steam profile link"
+        />
+        <button id="searchBtn">Search</button>
+      </div>
 
-<input id="steamid" placeholder="SteamID64">
-<button onclick="loadProfile()">Search</button>
+      <div class="tip">
+        Példák: <br>
+        <span class="muted">76561199056499934</span> •
+        <span class="muted">gaben</span> •
+        <span class="muted">https://steamcommunity.com/id/gaben</span>
+      </div>
+    </div>
 
-<div id="profile"></div>
+    <div id="status" class="status"></div>
 
-<script>
-const API_KEY = "AEC7A268006451D900F73AE712266DF6";
+    <div id="results" class="hidden">
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-head"><h2>Profile Overview</h2></div>
+          <div class="panel-body">
+            <div class="profile-card">
+              <img id="avatar" class="avatar" alt="Steam avatar" />
+              <div class="profile-meta">
+                <h1 id="persona" class="persona"></h1>
+                <a id="profileLink" class="profile-link" href="#" target="_blank" rel="noopener noreferrer">Open Steam Profile</a>
 
-async function loadProfile(){
-    let steamid = document.getElementById("steamid").value.trim();
-    let output = document.getElementById("profile");
+                <div id="privacyPill" class="pill">
+                  <span id="privacyDot" class="dot public"></span>
+                  <span id="privacyText">Public</span>
+                </div>
 
-    if(!steamid){
-        output.innerHTML = "<p class='error'>Please enter a SteamID64</p>";
-        return;
-    }
+                <div class="stat-row">
+                  <div class="stat-box">
+                    <div class="stat-label">SteamID64</div>
+                    <div id="steamIdValue" class="stat-value" style="font-size:16px; word-break:break-all;"></div>
+                  </div>
+                  <div class="stat-box">
+                    <div class="stat-label">Total Games</div>
+                    <div id="totalGames" class="stat-value">0</div>
+                  </div>
+                  <div class="stat-box">
+                    <div class="stat-label">Most Played</div>
+                    <div id="mostPlayed" class="stat-value" style="font-size:16px;"></div>
+                  </div>
+                  <div class="stat-box">
+                    <div class="stat-label">Least Played</div>
+                    <div id="leastPlayed" class="stat-value" style="font-size:16px;"></div>
+                  </div>
+                </div>
 
-    output.innerHTML = "<p>Loading profile...</p>";
-
-    try{
-        let profileURL =
-        `https://corsproxy.io/?https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${API_KEY}&steamids=${steamid}`;
-
-        let gamesURL =
-        `https://corsproxy.io/?https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${API_KEY}&steamid=${steamid}&include_appinfo=true`;
-
-        let profileResponse = await fetch(profileURL);
-        let profileData = await profileResponse.json();
-
-        if(!profileData.response || !profileData.response.players || profileData.response.players.length === 0){
-            output.innerHTML = "<p class='error'>User not found</p>";
-            return;
-        }
-
-        let player = profileData.response.players[0];
-        let visibility = player.communityvisibilitystate == 3 ? "Public" : "Private";
-
-        let games = null;
-        let mostPlayed = null;
-        let leastPlayed = null;
-
-        try{
-            let gamesResponse = await fetch(gamesURL);
-            let gamesData = await gamesResponse.json();
-
-            if(gamesData.response && gamesData.response.games){
-                games = gamesData.response.games;
-
-                if(games.length > 0){
-                    mostPlayed = games.reduce((a,b)=>
-                        a.playtime_forever > b.playtime_forever ? a : b
-                    );
-
-                    leastPlayed = games.reduce((a,b)=>
-                        a.playtime_forever < b.playtime_forever ? a : b
-                    );
-                }
-            }
-        } catch (gamesErr) {
-            console.error("Games load error:", gamesErr);
-        }
-
-        output.innerHTML = `
-        <div class="card">
-            <img src="${player.avatarfull}" alt="Avatar">
-
-            <h2>${player.personaname}</h2>
-
-            <p class="stat">
-                <a href="${player.profileurl}" target="_blank">Open Steam Profile</a>
-            </p>
-
-            <p class="stat">Privacy: ${visibility}</p>
-
-            <p class="stat">Total Games: ${games ? games.length : "Hidden or unavailable"}</p>
-
-            <p class="stat">
-                Most Played:
-                ${mostPlayed ? mostPlayed.name + " (" + Math.floor(mostPlayed.playtime_forever/60) + " hrs)" : "Hidden or unavailable"}
-            </p>
-
-            <p class="stat">
-                Least Played:
-                ${leastPlayed ? leastPlayed.name + " (" + Math.floor(leastPlayed.playtime_forever/60) + " hrs)" : "Hidden or unavailable"}
-            </p>
+                <div class="footer-note">
+                  A játékok és achievementek csak akkor látszanak, ha a Steam profil és a
+                  <strong>Game details</strong> is public.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        `;
-    } catch(err){
-        console.error(err);
-        output.innerHTML =
-        "<p class='error'>Error loading Steam data. Check API key, CORS proxy, or profile privacy.</p>";
-    }
-}
-</script>
 
+        <div class="panel">
+          <div class="panel-head"><h2>Playtime Chart</h2></div>
+          <div class="panel-body">
+            <div class="chart-wrap">
+              <canvas id="gamesChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-head"><h2>Top 10 Most Played Games</h2></div>
+          <div class="panel-body">
+            <div id="topGamesList" class="games-list"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Rarest Unlocked Achievements</h2></div>
+          <div class="panel-body">
+            <div id="achievementsList" class="ach-list"></div>
+            <div class="footer-note">
+              Ez a lista a top játékokból próbálja összeszedni a legritkább achievementeket.
+              Néhány játék nem támogatja az achievement API-t.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = "AEC7A268006451D900F73AE712266DF6";
+
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const steamInput = document.getElementById("steamInput");
+    const searchBtn = document.getElementById("searchBtn");
+
+    let chartInstance = null;
+
+    function setStatus(message, isError = false){
+      statusEl.innerHTML = isError
+        ? `<span class="error">${message}</span>`
+        : message;
+    }
+
+    function showResults(){
+      resultsEl.classList.remove("hidden");
+    }
+
+    function hideResults(){
+      resultsEl.classList.add("hidden");
+    }
+
+    function hoursFromMinutes(minutes){
+      return Math.floor((minutes || 0) / 60);
+    }
+
+    function escapeHtml(str){
+      if(str == null) return "";
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function fetchJson(url){
+      const proxied = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      const response = await fetch(proxied);
+
+      if(!response.ok){
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    }
+
+    function extractVanityOrId(input){
+      const trimmed = input.trim();
+
+      if(/^\d{17}$/.test(trimmed)){
+        return { type: "steamid", value: trimmed };
+      }
+
+      if(trimmed.includes("steamcommunity.com/")){
+        try{
+          const url = new URL(trimmed);
+          const parts = url.pathname.split("/").filter(Boolean);
+
+          if(parts[0] === "profiles" && parts[1]){
+            return { type: "steamid", value: parts[1] };
+          }
+
+          if(parts[0] === "id" && parts[1]){
+            return { type: "vanity", value: parts[1] };
+          }
+        }catch{
+          // ignore
+        }
+      }
+
+      return { type: "vanity", value: trimmed };
+    }
+
+    async function resolveSteamId(input){
+      const parsed = extractVanityOrId(input);
+
+      if(parsed.type === "steamid"){
+        return parsed.value;
+      }
+
+      const url = `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${API_KEY}&vanityurl=${encodeURIComponent(parsed.value)}`;
+      const data = await fetchJson(url);
+
+      if(!data.response || data.response.success !== 1 || !data.response.steamid){
+        throw new Error("Could not resolve vanity URL / profile link.");
+      }
+
+      return data.response.steamid;
+    }
+
+    async function getProfile(steamid){
+      const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${API_KEY}&steamids=${steamid}`;
+      const data = await fetchJson(url);
+
+      if(!data.response || !data.response.players || data.response.players.length === 0){
+        throw new Error("Steam profile not found.");
+      }
+
+      return data.response.players[0];
+    }
+
+    async function getOwnedGames(steamid){
+      const url = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${API_KEY}&steamid=${steamid}&include_appinfo=true&include_played_free_games=true`;
+      const data = await fetchJson(url);
+      return data.response?.games || [];
+    }
+
+    function getHeaderImage(appid){
+      return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`;
+    }
+
+    function renderProfile(player, steamid, games){
+      document.getElementById("avatar").src = player.avatarfull || player.avatarmedium || "";
+      document.getElementById("persona").textContent = player.personaname || "Unknown";
+      document.getElementById("profileLink").href = player.profileurl || "#";
+      document.getElementById("steamIdValue").textContent = steamid;
+
+      const publicProfile = player.communityvisibilitystate === 3;
+      const privacyText = publicProfile ? "Public" : "Private";
+      document.getElementById("privacyText").textContent = privacyText;
+
+      const dot = document.getElementById("privacyDot");
+      dot.className = "dot " + (publicProfile ? "public" : "private");
+
+      document.getElementById("totalGames").textContent = games.length ? games.length : "Hidden";
+
+      if(games.length){
+        const sorted = [...games].sort((a,b) => b.playtime_forever - a.playtime_forever);
+        const most = sorted[0];
+        const least = [...games].sort((a,b) => a.playtime_forever - b.playtime_forever)[0];
+
+        document.getElementById("mostPlayed").textContent =
+          `${most.name} (${hoursFromMinutes(most.playtime_forever)} hrs)`;
+
+        document.getElementById("leastPlayed").textContent =
+          `${least.name} (${hoursFromMinutes(least.playtime_forever)} hrs)`;
+      } else {
+        document.getElementById("mostPlayed").textContent = "Hidden";
+        document.getElementById("leastPlayed").textContent = "Hidden";
+      }
+    }
+
+    function renderTopGames(games){
+      const list = document.getElementById("topGamesList");
+
+      if(!games.length){
+        list.innerHTML = `<div class="muted">No visible owned games found.</div>`;
+        return;
+      }
+
+      const top10 = [...games]
+        .sort((a,b) => b.playtime_forever - a.playtime_forever)
+        .slice(0, 10);
+
+      list.innerHTML = top10.map((game, index) => `
+        <div class="game-item">
+          <img
+            src="${getHeaderImage(game.appid)}"
+            alt="${escapeHtml(game.name)}"
+            onerror="this.src='https://placehold.co/600x280/0b0f14/9db4c9?text=No+Image';"
+          >
+          <div class="game-main">
+            <div class="game-rank">#${index + 1}</div>
+            <div class="game-name">${escapeHtml(game.name)}</div>
+            <div class="game-sub">App ID: ${game.appid}</div>
+          </div>
+          <div class="hours">${hoursFromMinutes(game.playtime_forever)} hrs</div>
+        </div>
+      `).join("");
+    }
+
+    function renderChart(games){
+      const ctx = document.getElementById("gamesChart").getContext("2d");
+
+      if(chartInstance){
+        chartInstance.destroy();
+      }
+
+      const top10 = [...games]
+        .sort((a,b) => b.playtime_forever - a.playtime_forever)
+        .slice(0, 10);
+
+      chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: top10.map(g => g.name.length > 18 ? g.name.slice(0, 18) + "…" : g.name),
+          datasets: [{
+            label: "Hours Played",
+            data: top10.map(g => hoursFromMinutes(g.playtime_forever)),
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              labels: {
+                color: "#dfefff"
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#b8c9d8" },
+              grid: { color: "rgba(255,255,255,.05)" }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: "#b8c9d8" },
+              grid: { color: "rgba(255,255,255,.07)" }
+            }
+          }
+        }
+      });
+    }
+
+    async function getPlayerAchievements(steamid, appid){
+      const url = `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key=${API_KEY}&steamid=${steamid}&appid=${appid}`;
+      return await fetchJson(url);
+    }
+
+    async function getGlobalAchievementPercentages(appid){
+      const url = `https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/?gameid=${appid}`;
+      return await fetchJson(url);
+    }
+
+    async function findRarestAchievements(steamid, games){
+      const achievementsList = document.getElementById("achievementsList");
+      achievementsList.innerHTML = `<div class="muted">Scanning achievements...</div>`;
+
+      if(!games.length){
+        achievementsList.innerHTML = `<div class="muted">No visible games to scan.</div>`;
+        return;
+      }
+
+      const scanGames = [...games]
+        .sort((a,b) => b.playtime_forever - a.playtime_forever)
+        .slice(0, 10);
+
+      const collected = [];
+
+      for(const game of scanGames){
+        try{
+          const [playerData, globalData] = await Promise.all([
+            getPlayerAchievements(steamid, game.appid),
+            getGlobalAchievementPercentages(game.appid)
+          ]);
+
+          const playerAchievements = playerData.playerstats?.achievements || [];
+          const globalAchievements = globalData.achievementpercentages?.achievements || [];
+
+          if(!playerAchievements.length || !globalAchievements.length){
+            continue;
+          }
+
+          const globalMap = new Map(
+            globalAchievements.map(a => [a.name, a.percent])
+          );
+
+          const unlocked = playerAchievements.filter(a => a.achieved === 1);
+
+          for(const ach of unlocked){
+            const percent = globalMap.get(ach.apiname);
+
+            if(percent !== undefined){
+              collected.push({
+                game: game.name,
+                appid: game.appid,
+                name: ach.name || ach.apiname,
+                rarity: percent
+              });
+            }
+          }
+        }catch(err){
+          console.log(`Achievement scan skipped for ${game.name}`, err);
+        }
+      }
+
+      if(!collected.length){
+        achievementsList.innerHTML = `
+          <div class="muted">
+            No achievement rarity data available. Some games do not expose achievement stats.
+          </div>
+        `;
+        return;
+      }
+
+      const rarest = collected
+        .sort((a,b) => a.rarity - b.rarity)
+        .slice(0, 10);
+
+      achievementsList.innerHTML = rarest.map(ach => `
+        <div class="ach-item">
+          <div class="ach-top">
+            <div class="ach-name">${escapeHtml(ach.name)}</div>
+            <div class="ach-rate">${ach.rarity.toFixed(2)}%</div>
+          </div>
+          <div class="ach-game">${escapeHtml(ach.game)}</div>
+        </div>
+      `).join("");
+    }
+
+    async function loadProfile(){
+      const input = steamInput.value.trim();
+
+      if(!input){
+        hideResults();
+        setStatus("Írj be egy SteamID64-et, vanity nevet vagy Steam linket.", true);
+        return;
+      }
+
+      if(API_KEY === "IDE_IRD_BE_AZ_UJ_STEAM_API_KULCSOD"){
+        hideResults();
+        setStatus("Először írd be a saját Steam API kulcsodat a kódba.", true);
+        return;
+      }
+
+      searchBtn.disabled = true;
+      setStatus("Loading Steam profile...");
+      hideResults();
+
+      try{
+        const steamid = await resolveSteamId(input);
+        setStatus("Loading profile and games...");
+
+        const [player, games] = await Promise.all([
+          getProfile(steamid),
+          getOwnedGames(steamid)
+        ]);
+
+        renderProfile(player, steamid, games);
+        renderTopGames(games);
+        renderChart(games);
+        showResults();
+
+        setStatus("Loading achievement rarity...");
+        await findRarestAchievements(steamid, games);
+
+        setStatus("Done.");
+      }catch(err){
+        console.error(err);
+        hideResults();
+        setStatus(
+          "Error loading Steam data. Check API key, profile privacy, or the entered link/ID.",
+          true
+        );
+      }finally{
+        searchBtn.disabled = false;
+      }
+    }
+
+    searchBtn.addEventListener("click", loadProfile);
+
+    steamInput.addEventListener("keydown", (e) => {
+      if(e.key === "Enter"){
+        loadProfile();
+      }
+    });
+  </script>
 </body>
 </html>
