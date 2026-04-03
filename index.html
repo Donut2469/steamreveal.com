@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Steam Profile Checker</title>
+
+<style>
+
+body{
+background:#0b0f14;
+color:white;
+font-family:Arial;
+text-align:center;
+padding:40px;
+}
+
+h1{
+color:#66c0f4;
+}
+
+input{
+padding:10px;
+width:260px;
+border:none;
+border-radius:5px;
+}
+
+button{
+padding:10px 20px;
+background:#66c0f4;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#417a9b;
+}
+
+#profile{
+margin-top:30px;
+}
+
+.card{
+background:#171a21;
+padding:20px;
+border-radius:10px;
+display:inline-block;
+width:350px;
+}
+
+img{
+border-radius:10px;
+}
+
+.stat{
+margin-top:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Steam Profile Stats</h1>
+
+<input id="steamid" placeholder="SteamID64">
+<button onclick="loadProfile()">Search</button>
+
+<div id="profile"></div>
+
+<script>
+
+const API_KEY = "6E4704F161A17951DF7CA9CEFEB2846B";
+
+async function loadProfile(){
+
+let steamid = document.getElementById("steamid").value;
+
+let profileURL =
+`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${API_KEY}&steamids=${steamid}`;
+
+let gamesURL =
+`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${API_KEY}&steamid=${steamid}&include_appinfo=true`;
+
+let profileResponse = await fetch(profileURL);
+let profileData = await profileResponse.json();
+
+let player = profileData.response.players[0];
+
+if(!player){
+document.getElementById("profile").innerHTML="User not found";
+return;
+}
+
+let visibility = player.communityvisibilitystate == 3 ? "Public" : "Private";
+
+let gamesResponse = await fetch(gamesURL);
+let gamesData = await gamesResponse.json();
+
+let games = gamesData.response.games;
+
+let mostPlayed = null;
+let leastPlayed = null;
+
+if(games){
+
+mostPlayed = games.reduce((a,b)=>
+a.playtime_forever > b.playtime_forever ? a : b);
+
+leastPlayed = games.reduce((a,b)=>
+a.playtime_forever < b.playtime_forever ? a : b);
+
+}
+
+document.getElementById("profile").innerHTML = `
+
+<div class="card">
+
+<img src="${player.avatarfull}">
+
+<h2>${player.personaname}</h2>
+
+<p class="stat">Profile: 
+<a href="${player.profileurl}" target="_blank">Open</a>
+</p>
+
+<p class="stat">Privacy: ${visibility}</p>
+
+<p class="stat">Total Games: ${games ? games.length : "Hidden"}</p>
+
+<p class="stat">
+Most Played: 
+${mostPlayed ? mostPlayed.name + " (" + Math.floor(mostPlayed.playtime_forever/60) + " hrs)" : "Hidden"}
+</p>
+
+<p class="stat">
+Least Played: 
+${leastPlayed ? leastPlayed.name + " (" + Math.floor(leastPlayed.playtime_forever/60) + " hrs)" : "Hidden"}
+</p>
+
+</div>
+
+`;
+
+}
+
+</script>
+
+</body>
+</html>
