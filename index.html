@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,14 +8,12 @@
   <style>
     :root{
       --bg:#071018;
-      --bg2:#0b1622;
       --panel:#101822;
       --panel2:#16202d;
       --line:#223246;
       --text:#e7f1fb;
       --muted:#9db4c9;
       --blue:#66c0f4;
-      --blue2:#1b5f85;
       --green:#7cc76d;
       --red:#ff6b6b;
       --gold:#f5c451;
@@ -49,7 +47,6 @@
     .brand{
       font-size:48px;
       font-weight:800;
-      letter-spacing:.5px;
       margin:10px 0 8px;
       color:var(--blue);
       text-shadow:0 0 18px rgba(102,192,244,.18);
@@ -78,10 +75,6 @@
       outline:none;
       font-size:16px;
       box-shadow:var(--shadow);
-    }
-
-    .searchbar input::placeholder{
-      color:#a2b6c8;
     }
 
     .searchbar button{
@@ -244,7 +237,7 @@
     .dot.public{background:var(--green)}
     .dot.private{background:var(--red)}
 
-    .games-list{
+    .games-list,.ach-list{
       display:grid;
       gap:14px;
     }
@@ -258,12 +251,6 @@
       border:1px solid rgba(255,255,255,.05);
       border-radius:16px;
       overflow:hidden;
-      transition:.18s ease;
-    }
-
-    .game-item:hover{
-      transform:translateY(-1px);
-      border-color:rgba(102,192,244,.26);
     }
 
     .game-item img{
@@ -305,11 +292,6 @@
       font-weight:800;
       color:var(--blue);
       white-space:nowrap;
-    }
-
-    .ach-list{
-      display:grid;
-      gap:12px;
     }
 
     .ach-item{
@@ -367,27 +349,16 @@
     }
 
     @media (max-width: 980px){
-      .grid{
-        grid-template-columns:1fr;
-      }
+      .grid{grid-template-columns:1fr;}
     }
 
     @media (max-width: 640px){
       .brand{font-size:36px}
       .persona{font-size:26px}
-      .game-item{
-        grid-template-columns:1fr;
-      }
-      .game-item img{
-        width:100%;
-        height:80px;
-      }
-      .hours{
-        padding:0 14px 14px;
-      }
-      .stat-row{
-        grid-template-columns:1fr;
-      }
+      .game-item{grid-template-columns:1fr;}
+      .game-item img{width:100%;height:80px;}
+      .hours{padding:0 14px 14px;}
+      .stat-row{grid-template-columns:1fr;}
     }
   </style>
 </head>
@@ -398,16 +369,12 @@
       <p class="sub">Profile analyzer • Top games • Charts • Rare achievements</p>
 
       <div class="searchbar">
-        <input
-          id="steamInput"
-          type="text"
-          placeholder="SteamID64, vanity name, vagy Steam profile link"
-        />
+        <input id="steamInput" type="text" placeholder="SteamID64, vanity name, vagy Steam profile link" />
         <button id="searchBtn">Search</button>
       </div>
 
       <div class="tip">
-        Példák: <br>
+        Példák:<br>
         <span class="muted">76561199056499934</span> •
         <span class="muted">gaben</span> •
         <span class="muted">https://steamcommunity.com/id/gaben</span>
@@ -483,8 +450,7 @@
           <div class="panel-body">
             <div id="achievementsList" class="ach-list"></div>
             <div class="footer-note">
-              Ez a lista a top játékokból próbálja összeszedni a legritkább achievementeket.
-              Néhány játék nem támogatja az achievement API-t.
+              Ha egy játék nem ad vissza achievement adatot, egyszerűen kihagyjuk.
             </div>
           </div>
         </div>
@@ -499,22 +465,14 @@
     const resultsEl = document.getElementById("results");
     const steamInput = document.getElementById("steamInput");
     const searchBtn = document.getElementById("searchBtn");
-
     let chartInstance = null;
 
     function setStatus(message, isError = false){
-      statusEl.innerHTML = isError
-        ? `<span class="error">${message}</span>`
-        : message;
+      statusEl.innerHTML = isError ? `<span class="error">${message}</span>` : message;
     }
 
-    function showResults(){
-      resultsEl.classList.remove("hidden");
-    }
-
-    function hideResults(){
-      resultsEl.classList.add("hidden");
-    }
+    function showResults(){ resultsEl.classList.remove("hidden"); }
+    function hideResults(){ resultsEl.classList.add("hidden"); }
 
     function hoursFromMinutes(minutes){
       return Math.floor((minutes || 0) / 60);
@@ -533,11 +491,7 @@
     async function fetchJson(url){
       const proxied = `https://corsproxy.io/?${encodeURIComponent(url)}`;
       const response = await fetch(proxied);
-
-      if(!response.ok){
-        throw new Error(`HTTP ${response.status}`);
-      }
-
+      if(!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     }
 
@@ -556,13 +510,10 @@
           if(parts[0] === "profiles" && parts[1]){
             return { type: "steamid", value: parts[1] };
           }
-
           if(parts[0] === "id" && parts[1]){
             return { type: "vanity", value: parts[1] };
           }
-        }catch{
-          // ignore
-        }
+        }catch(err){}
       }
 
       return { type: "vanity", value: trimmed };
@@ -579,7 +530,7 @@
       const data = await fetchJson(url);
 
       if(!data.response || data.response.success !== 1 || !data.response.steamid){
-        throw new Error("Could not resolve vanity URL / profile link.");
+        throw new Error("Could not resolve profile link or vanity name.");
       }
 
       return data.response.steamid;
@@ -613,18 +564,16 @@
       document.getElementById("steamIdValue").textContent = steamid;
 
       const publicProfile = player.communityvisibilitystate === 3;
-      const privacyText = publicProfile ? "Public" : "Private";
-      document.getElementById("privacyText").textContent = privacyText;
-
-      const dot = document.getElementById("privacyDot");
-      dot.className = "dot " + (publicProfile ? "public" : "private");
+      document.getElementById("privacyText").textContent = publicProfile ? "Public" : "Private";
+      document.getElementById("privacyDot").className = "dot " + (publicProfile ? "public" : "private");
 
       document.getElementById("totalGames").textContent = games.length ? games.length : "Hidden";
 
       if(games.length){
-        const sorted = [...games].sort((a,b) => b.playtime_forever - a.playtime_forever);
-        const most = sorted[0];
-        const least = [...games].sort((a,b) => a.playtime_forever - b.playtime_forever)[0];
+        const sortedDesc = [...games].sort((a,b) => b.playtime_forever - a.playtime_forever);
+        const sortedAsc = [...games].sort((a,b) => a.playtime_forever - b.playtime_forever);
+        const most = sortedDesc[0];
+        const least = sortedAsc[0];
 
         document.getElementById("mostPlayed").textContent =
           `${most.name} (${hoursFromMinutes(most.playtime_forever)} hrs)`;
@@ -645,9 +594,7 @@
         return;
       }
 
-      const top10 = [...games]
-        .sort((a,b) => b.playtime_forever - a.playtime_forever)
-        .slice(0, 10);
+      const top10 = [...games].sort((a,b) => b.playtime_forever - a.playtime_forever).slice(0, 10);
 
       list.innerHTML = top10.map((game, index) => `
         <div class="game-item">
@@ -673,9 +620,26 @@
         chartInstance.destroy();
       }
 
-      const top10 = [...games]
-        .sort((a,b) => b.playtime_forever - a.playtime_forever)
-        .slice(0, 10);
+      if(!games.length){
+        chartInstance = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: ["No Data"],
+            datasets: [{ label: "Hours Played", data: [0], borderWidth: 1 }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: "#dfefff" } } },
+            scales: {
+              x: { ticks: { color: "#b8c9d8" }, grid: { color: "rgba(255,255,255,.05)" } },
+              y: { beginAtZero: true, ticks: { color: "#b8c9d8" }, grid: { color: "rgba(255,255,255,.07)" } }
+            }
+          }
+        });
+        return;
+      }
+
+      const top10 = [...games].sort((a,b) => b.playtime_forever - a.playtime_forever).slice(0, 10);
 
       chartInstance = new Chart(ctx, {
         type: "bar",
@@ -689,23 +653,10 @@
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: {
-              labels: {
-                color: "#dfefff"
-              }
-            }
-          },
+          plugins: { legend: { labels: { color: "#dfefff" } } },
           scales: {
-            x: {
-              ticks: { color: "#b8c9d8" },
-              grid: { color: "rgba(255,255,255,.05)" }
-            },
-            y: {
-              beginAtZero: true,
-              ticks: { color: "#b8c9d8" },
-              grid: { color: "rgba(255,255,255,.07)" }
-            }
+            x: { ticks: { color: "#b8c9d8" }, grid: { color: "rgba(255,255,255,.05)" } },
+            y: { beginAtZero: true, ticks: { color: "#b8c9d8" }, grid: { color: "rgba(255,255,255,.07)" } }
           }
         }
       });
@@ -723,25 +674,24 @@
 
     async function findRarestAchievements(steamid, games){
       const achievementsList = document.getElementById("achievementsList");
-      achievementsList.innerHTML = `<div class="muted">Scanning achievements...</div>`;
 
       if(!games.length){
         achievementsList.innerHTML = `<div class="muted">No visible games to scan.</div>`;
         return;
       }
 
+      achievementsList.innerHTML = `<div class="muted">Scanning achievements...</div>`;
+
       const scanGames = [...games]
         .sort((a,b) => b.playtime_forever - a.playtime_forever)
-        .slice(0, 10);
+        .slice(0, 5);
 
       const collected = [];
 
       for(const game of scanGames){
         try{
-          const [playerData, globalData] = await Promise.all([
-            getPlayerAchievements(steamid, game.appid),
-            getGlobalAchievementPercentages(game.appid)
-          ]);
+          const playerData = await getPlayerAchievements(steamid, game.appid);
+          const globalData = await getGlobalAchievementPercentages(game.appid);
 
           const playerAchievements = playerData.playerstats?.achievements || [];
           const globalAchievements = globalData.achievementpercentages?.achievements || [];
@@ -750,41 +700,30 @@
             continue;
           }
 
-          const globalMap = new Map(
-            globalAchievements.map(a => [a.name, a.percent])
-          );
-
+          const globalMap = new Map(globalAchievements.map(a => [a.name, a.percent]));
           const unlocked = playerAchievements.filter(a => a.achieved === 1);
 
           for(const ach of unlocked){
             const percent = globalMap.get(ach.apiname);
-
             if(percent !== undefined){
               collected.push({
                 game: game.name,
-                appid: game.appid,
                 name: ach.name || ach.apiname,
                 rarity: percent
               });
             }
           }
         }catch(err){
-          console.log(`Achievement scan skipped for ${game.name}`, err);
+          console.log("Skipped achievement scan for:", game.name, err);
         }
       }
 
       if(!collected.length){
-        achievementsList.innerHTML = `
-          <div class="muted">
-            No achievement rarity data available. Some games do not expose achievement stats.
-          </div>
-        `;
+        achievementsList.innerHTML = `<div class="muted">No rarity data available for scanned games.</div>`;
         return;
       }
 
-      const rarest = collected
-        .sort((a,b) => a.rarity - b.rarity)
-        .slice(0, 10);
+      const rarest = collected.sort((a,b) => a.rarity - b.rarity).slice(0, 10);
 
       achievementsList.innerHTML = rarest.map(ach => `
         <div class="ach-item">
@@ -806,52 +745,52 @@
         return;
       }
 
-      if(API_KEY === "IDE_IRD_BE_AZ_UJ_STEAM_API_KULCSOD"){
+      if(API_KEY === "IDE_IRD_BE_A_SAJAT_UJ_API_KULCSOD"){
         hideResults();
         setStatus("Először írd be a saját Steam API kulcsodat a kódba.", true);
         return;
       }
 
       searchBtn.disabled = true;
-      setStatus("Loading Steam profile...");
+      setStatus("Loading profile...");
       hideResults();
 
       try{
         const steamid = await resolveSteamId(input);
-        setStatus("Loading profile and games...");
-
-        const [player, games] = await Promise.all([
-          getProfile(steamid),
-          getOwnedGames(steamid)
-        ]);
+        const player = await getProfile(steamid);
+        const games = await getOwnedGames(steamid);
 
         renderProfile(player, steamid, games);
         renderTopGames(games);
         renderChart(games);
+
+        document.getElementById("achievementsList").innerHTML =
+          `<div class="muted">Loading achievement rarity...</div>`;
+
         showResults();
+        setStatus("Profile loaded.");
 
-        setStatus("Loading achievement rarity...");
-        await findRarestAchievements(steamid, games);
+        findRarestAchievements(steamid, games)
+          .then(() => setStatus("Done."))
+          .catch((err) => {
+            console.error(err);
+            document.getElementById("achievementsList").innerHTML =
+              `<div class="muted">Achievement scan failed, but profile data loaded fine.</div>`;
+            setStatus("Profile loaded. Achievement scan partly failed.");
+          });
 
-        setStatus("Done.");
       }catch(err){
         console.error(err);
         hideResults();
-        setStatus(
-          "Error loading Steam data. Check API key, profile privacy, or the entered link/ID.",
-          true
-        );
+        setStatus("Error loading Steam data. Check API key, profile privacy, or entered link/ID.", true);
       }finally{
         searchBtn.disabled = false;
       }
     }
 
     searchBtn.addEventListener("click", loadProfile);
-
     steamInput.addEventListener("keydown", (e) => {
-      if(e.key === "Enter"){
-        loadProfile();
-      }
+      if(e.key === "Enter") loadProfile();
     });
   </script>
 </body>
