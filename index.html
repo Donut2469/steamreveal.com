@@ -93,10 +93,10 @@ output.innerHTML = "<p>Loading profile...</p>";
 try{
 
 let profileURL =
-`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${API_KEY}&steamids=${steamid}`;
+`https://corsproxy.io/?https://corsproxy.io/?https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${API_KEY}&steamids=${steamid}`;
 
 let gamesURL =
-`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${API_KEY}&steamid=${steamid}&include_appinfo=true`;
+`https://corsproxy.io/?https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${API_KEY}&steamid=${steamid}&include_appinfo=true`;
 
 let profileResponse = await fetch(profileURL);
 let profileData = await profileResponse.json();
