@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-<title>Steam Profile Checker</title>
+<title>Steam Profile Stats</title>
 
 <style>
 
@@ -57,6 +56,11 @@ border-radius:10px;
 margin-top:10px;
 }
 
+.error{
+color:red;
+margin-top:20px;
+}
+
 </style>
 
 </head>
@@ -77,6 +81,16 @@ const API_KEY = "6E4704F161A17951DF7CA9CEFEB2846B";
 async function loadProfile(){
 
 let steamid = document.getElementById("steamid").value;
+let output = document.getElementById("profile");
+
+if(!steamid){
+output.innerHTML = "<p class='error'>Please enter a SteamID64</p>";
+return;
+}
+
+output.innerHTML = "<p>Loading profile...</p>";
+
+try{
 
 let profileURL =
 `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${API_KEY}&steamids=${steamid}`;
@@ -90,7 +104,7 @@ let profileData = await profileResponse.json();
 let player = profileData.response.players[0];
 
 if(!player){
-document.getElementById("profile").innerHTML="User not found";
+output.innerHTML = "<p class='error'>User not found</p>";
 return;
 }
 
@@ -104,7 +118,7 @@ let games = gamesData.response.games;
 let mostPlayed = null;
 let leastPlayed = null;
 
-if(games){
+if(games && games.length > 0){
 
 mostPlayed = games.reduce((a,b)=>
 a.playtime_forever > b.playtime_forever ? a : b);
@@ -114,7 +128,7 @@ a.playtime_forever < b.playtime_forever ? a : b);
 
 }
 
-document.getElementById("profile").innerHTML = `
+output.innerHTML = `
 
 <div class="card">
 
@@ -122,8 +136,8 @@ document.getElementById("profile").innerHTML = `
 
 <h2>${player.personaname}</h2>
 
-<p class="stat">Profile: 
-<a href="${player.profileurl}" target="_blank">Open</a>
+<p class="stat">
+<a href="${player.profileurl}" target="_blank">Open Steam Profile</a>
 </p>
 
 <p class="stat">Privacy: ${visibility}</p>
@@ -143,6 +157,15 @@ ${leastPlayed ? leastPlayed.name + " (" + Math.floor(leastPlayed.playtime_foreve
 </div>
 
 `;
+
+}catch(err){
+
+console.error(err);
+
+output.innerHTML =
+"<p class='error'>Error loading Steam data. Check API key or profile privacy.</p>";
+
+}
 
 }
 
